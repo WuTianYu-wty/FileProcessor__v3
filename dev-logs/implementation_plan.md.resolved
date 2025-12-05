@@ -1,0 +1,108 @@
+
+# 实施计划与设计方案: FileProcessor 重构
+
+本文件详细描述了将现有 FileProcessor 脚本重构为全栈本地 Web 应用的实施计划、技术架构与数据库设计。
+
+## 1. 目标描述
+构建一个支持本地部署、个人使用的全栈文件处理应用。核心功能包括：
+- **文件管理**：支持 Word, WPS, TXT, PDF 的上传与管理。
+- **OCR 与脱敏**：集成 OCR 功能，支持精确脱敏（姓名/公司/车牌等）。
+- **PDF 工具**：支持 PDF 拆分（按页/按目录索引）与合并。
+- **自动化运维**：日志自动清理（1小时），数据保留策略（7天提醒），支持批量删除/导入。
+- **现代化 UI**：提供美观、流畅的前端界面。
+
+## 2. 技术栈选型
+基于用户需求与 "Web Application" 标准：
+
+*   **前端 (Frontend)**
+    *   **框架**: React (Vite 构建) - *高性能，生态丰富*
+    *   **UI 组件库**: Ant Design (v5) - *适合数据密集型后台/工具类应用，自带美观的表格与表单*
+    *   **HTTP 客户端**: Axios
+    *   **路由**: React Router v6
+
+*   **后端 (Backend)**
+    *   **运行时**: Node.js
+    *   **Web 框架**: Express.js - *稳定，轻量，易于集成*
+    *   **OCR/PDF 引擎**: Python (作为子进程调用)
+        *   `pdfplumber` / `PyMuPDF (fitz)`: PDF 解析与拆分
+        *   `PaddleOCR` 或 `EasyOCR`: 中文 OCR 支持
+    *   **日志**: Winston (支持按时间轮转)
+
+*   **数据库 (Database)**
+    *   **类型**: SQLite (本地文件数据库，无需安装服务)
+    *   **ORM**: Sequelize 或 Better-SQLite3 直接封装
+
+## 3. 数据库设计 (SQLite)
+
+### 3.1 `files` 表 - 文件记录
+| 字段名 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `id` | INTEGER PK | 自增主键 |
+| `original_name` | TEXT | 原始文件名 |
+| `file_path` | TEXT | 本地存储路径 |
+| `file_type` | TEXT | 扩展名 (pdf, docx, etc) |
+| `size` | INTEGER | 文件大小 (字节) |
+| `status` | TEXT | 状态 (pending, processing, completed, error) |
+| `created_at` | DATETIME | 上传时间 |
+| `processed_at` | DATETIME | 处理完成时间 |
+| `is_deleted` | BOOLEAN | 软删除标记 |
+
+### 3.2 `logs` 表 - 系统日志
+| 字段名 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `id` | INTEGER PK | 自增主键 |
+| `level` | TEXT | 日志级别 (info, error, warn) |
+| `message` | TEXT | 日志内容 |
+| `module` | TEXT | 来源模块 (backend, ocr, cleaner) |
+| `timestamp` | DATETIME | 发生时间 |
+
+### 3.3 `settings` 表 - 系统配置
+| 字段名 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `key` | TEXT PK | 配置键 (如 `retention_days`) |
+| `value` | TEXT | 配置值 |
+
+## 4. 关键功能实现细节
+
+### 4.1 OCR 与脱敏
+- 后端接收文件后，若为 PDF/图片，调用 Python 脚本进行 OCR。
+- 文本提取后，应用脱敏规则（正则 + 关键词）。
+- 脱敏后生成新文件，保留原格式（尽可能）。
+
+### 4.2 PDF 拆分与索引
+- 使用 `PyMuPDF` 读取 PDF 目录（Outline/Bookmarks）。
+- 若存在目录，提供“按目录拆分”选项，后端根据目录页码范围进行拆切。
+- 若无目录，支持按固定页数拆分。
+
+### 4.3 日志与数据与清理
+- **日志**: 使用 `winston-daily-rotate-file`，每 1 小时轮转一次日志文件，并在应用启动时启动定时任务清理旧日志。
+- **数据保留**: 每次启动应用时（或每天），检查 `files` 表中 `created_at` > 7 天的记录。若存在，前端弹窗提示用户“是否清理 7 天前的数据？”。
+
+## 5. 开发周期 (预计 3-5 天)
+
+### Phase 1: 基础设施 (Day 1)
+- [ ] 初始化 Node.js 后端与 React 前端项目结构。
+- [ ] 搭建 SQLite 数据库与基本 CRUD 接口。
+- [ ] 配置 Winston 日志系统。
+
+### Phase 2: 核心业务 - 后端 (Day 2)
+- [ ] 实现文件上传接口 (Multer)。
+- [ ] 移植/编写 Python 脚本 (OCR, PDF Split/Merge)。
+- [ ] 实现 Node.js 调用 Python 的通信桥梁。
+
+### Phase 3: 核心业务 - 前端 (Day 3)
+- [ ] 搭建 Dashboard 布局。
+- [ ] 实现文件列表、上传组件。
+- [ ] 集成 PDF 拆分/合并的可视化操作。
+
+### Phase 4: 优化与测试 (Day 4)
+- [ ] 联调前后端。
+- [ ] 测试脱敏准确度与日志策略。
+- [ ] UI 美化与细节打磨。
+
+## 6. 用户审查事项
+> [!IMPORTANT]
+> 请确认是否同意使用 **React + Ant Design** 作为前端栈，以及 **SQLite** 作为数据库。
+
+> [!WARNING]
+> OCR 功能依赖 Python 环境及相关库 (`paddleocr` 等)，请确保本地已安装 Python 3.8+。
