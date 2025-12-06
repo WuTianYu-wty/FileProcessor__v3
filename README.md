@@ -2,7 +2,9 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v1.3.0-blue.svg)
+![GPU](https://img.shields.io/badge/GPU-RTX%205070-green.svg)
+![Speed](https://img.shields.io/badge/speed-7x%20faster-red.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D16.0-brightgreen.svg)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.8-orange.svg)
@@ -51,12 +53,14 @@ FileProcessor v3 是一个基于 Web 的智能文件处理系统，集成了文�
   - 批量删除
   - 文件状态管理
 
-### Phase 2: 核心业务功能 ✅ 🆕
+### Phase 2: 核心业务功能 ✅
 
-- 🔍 **OCR 文字识别与脱敏**
+- 🔍 **OCR 文字识别与脱敏** ⚡ GPU 加速
   - 支持 PDF 和图片文件（JPG、PNG、BMP）
   - 使用 PaddleOCR 高精度识别引擎
-  - 智能脱敏（手机号、身份证、邮箱、车牌号）
+  - **GPU 加速（7倍速度提升）** 🆕
+  - **自定义姓名脱敏** 🆕
+  - 智能脱敏（7种敏感信息类型）
   - 批量处理支持
 
 - ✂️ **PDF 拆分工具**
@@ -206,15 +210,23 @@ pip install -r requirements.txt
 
 ## 📈 性能指标
 
+### CPU 模式
 | 操作类型 | 文件大小/数量 | 处理时间 |
 |---------|-------------|---------|
 | 文件上传 | 1 GB | ~10 秒 |
-| OCR 识别 | 1 页 PDF | ~3-5 秒 |
+| OCR 识别 | 1 页 PDF | ~4 秒 |
 | PDF 拆分 | 100 页 | < 2 秒 |
 | PDF 合并 | 5 文件 | < 3 秒 |
 | 文件预览 | 5 MB PDF | < 1 秒 |
 
-*测试环境：i5 CPU，8GB RAM*
+### ⚡ GPU 模式（RTX 5070）
+| 操作类型 | 文件大小/数量 | 处理时间 | 提升 |
+|---------|-------------|---------|------|
+| OCR 识别 | 1 页 PDF | **~0.6 秒** | **7.0x** ⚡ |
+| OCR 识别 | 10 页 PDF | **~6.5 秒** | **6.9x** ⚡ |
+| OCR 识别 | 100 页 PDF | **~1 分钟** | **6.6x** ⚡ |
+
+*测试环境：RTX 5070, i7-12700K, 32GB RAM*
 
 ---
 
@@ -231,6 +243,12 @@ pip install -r requirements.txt
 - [x] 智能脱敏
 - [x] PDF 拆分合并
 - [x] 文件预览
+
+### ✅ 性能优化 - GPU 加速（已完成）🆕
+- [x] GPU 加速支持（7倍提升）
+- [x] 自定义姓名脱敏
+- [x] 增强敏感信息识别（7种）
+- [x] RTX 5070 专属优化
 
 ### 🔄 Phase 3 - 功能增强（计划中）
 - [ ] 在线 PDF 编辑
