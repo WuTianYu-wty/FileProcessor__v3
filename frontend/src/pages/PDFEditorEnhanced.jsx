@@ -26,7 +26,7 @@ import {
   EditOutlined,
   HighlightOutlined,
   SignatureOutlined,
-  ShapeOutlined,
+  BorderOutlined,
   RotateRightOutlined,
   PlusOutlined,
   DeleteOutlined,
@@ -331,7 +331,7 @@ function PDFEditorEnhanced() {
                 <HighlightOutlined /> 标注
               </Radio.Button>
               <Radio.Button value="shape" style={{ width: '50%', textAlign: 'center', marginTop: 8 }}>
-                <ShapeOutlined /> 形状
+                <BorderOutlined /> 形状
               </Radio.Button>
               <Radio.Button value="signature" style={{ width: '50%', textAlign: 'center', marginTop: 8 }}>
                 <SignatureOutlined /> 签名

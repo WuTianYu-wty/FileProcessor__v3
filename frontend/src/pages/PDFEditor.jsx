@@ -25,7 +25,7 @@ import {
   EditOutlined,
   HighlightOutlined,
   SignatureOutlined,
-  ShapeOutlined,
+  BorderOutlined,
   RotateRightOutlined,
   PlusOutlined,
   DeleteOutlined,
@@ -404,7 +404,7 @@ function PDFEditor() {
               </Panel>
 
               {/* 添加形状 */}
-              <Panel header={<><ShapeOutlined /> 添加形状</>} key="shape">
+              <Panel header={<><BorderOutlined /> 添加形状</>} key="shape">
                 <Form form={shapeForm} layout="vertical" onFinish={handleAddShape}>
                   <Row gutter={16}>
                     <Col span={12}>
