@@ -50,7 +50,12 @@ function MainLayout({ children }) {
         {
           key: '/pdf-editor',
           icon: <EditOutlined />,
-          label: 'PDF 编辑器',
+          label: 'PDF 编辑器（基础）',
+        },
+        {
+          key: '/pdf-editor-enhanced',
+          icon: <EditOutlined />,
+          label: 'PDF 编辑器（可视化）',
         },
       ],
     },

@@ -6,6 +6,7 @@ import FileList from './pages/FileList'
 import FileUpload from './pages/FileUpload'
 import PDFTools from './pages/PDFTools'
 import PDFEditor from './pages/PDFEditor'
+import PDFEditorEnhanced from './pages/PDFEditorEnhanced'
 import DocumentConverter from './pages/DocumentConverter'
 import BatchRename from './pages/BatchRename'
 import VersionManagement from './pages/VersionManagement'
@@ -23,6 +24,7 @@ function App() {
         <Route path="/upload" element={<FileUpload />} />
         <Route path="/pdf-tools" element={<PDFTools />} />
         <Route path="/pdf-editor" element={<PDFEditor />} />
+        <Route path="/pdf-editor-enhanced" element={<PDFEditorEnhanced />} />
         <Route path="/document-converter" element={<DocumentConverter />} />
         <Route path="/batch-rename" element={<BatchRename />} />
         <Route path="/version-management" element={<VersionManagement />} />

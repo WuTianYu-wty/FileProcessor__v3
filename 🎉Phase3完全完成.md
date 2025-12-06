@@ -489,7 +489,7 @@ node add_versions.js
 
 ---
 
-**开发团队**：AI Assistant (Claude Sonnet 4.5)  
+**开发团队**：WuTianyu 
 **项目仓库**：https://github.com/WuTianYu-wty/FileProcessor__v3  
 **完成日期**：2025-12-06  
 **版本号**：v2.0.0

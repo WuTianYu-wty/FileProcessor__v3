@@ -654,5 +654,5 @@ brew install libreoffice
 
 **文档版本**：v1.0  
 **最后更新**：2025-12-06  
-**开发团队**：AI Assistant (Claude Sonnet 4.5)
+**开发团队**：WuTianyu
 
