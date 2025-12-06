@@ -26,7 +26,7 @@ import {
   HistoryOutlined,
   RollbackOutlined,
   DeleteOutlined,
-  CompareOutlined,
+  DiffOutlined,
   FileTextOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
@@ -398,7 +398,7 @@ function VersionManagement() {
                           {index < versions.length - 1 && (
                             <Button 
                               size="small"
-                              icon={<CompareOutlined />}
+                              icon={<DiffOutlined />}
                               onClick={() => handleCompareVersions(
                                 version.version_number,
                                 versions[index + 1].version_number
