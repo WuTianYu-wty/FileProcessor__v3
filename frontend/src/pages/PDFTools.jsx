@@ -56,6 +56,7 @@ function PDFTools() {
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrResult, setOcrResult] = useState(null)
   const [showOcrResult, setShowOcrResult] = useState(false)
+  const [customNames, setCustomNames] = useState('')
 
   // 加载文件列表
   useEffect(() => {
@@ -179,9 +180,18 @@ function PDFTools() {
   const handleOcrProcess = async (values) => {
     setOcrLoading(true)
     try {
+      // 解析自定义姓名列表
+      const customNamesList = customNames
+        .split('\n')
+        .map(name => name.trim())
+        .filter(name => name.length > 0)
+      
       const response = await axios.post('/api/ocr/process', {
         fileId: values.fileId,
-        enableDesensitize: values.enableDesensitize !== false
+        enableDesensitize: values.enableDesensitize !== false,
+        enableNameDesensitize: values.enableNameDesensitize !== false,
+        useGpu: values.useGpu !== false,
+        customNames: customNamesList
       })
 
       if (response.data.success) {
@@ -397,8 +407,8 @@ function PDFTools() {
   const renderOcrTab = () => (
     <div>
       <Alert
-        message="OCR 识别与脱敏功能"
-        description="支持 PDF 和图片文件的文字识别。自动识别并脱敏敏感信息（手机号、身份证、邮箱、车牌号等）。首次使用会下载 OCR 模型，请耐心等待。"
+        message="OCR 识别与脱敏功能 - 增强版 ⚡"
+        description="支持 GPU 加速（RTX 5070）、自定义姓名脱敏、智能识别敏感信息。首次使用会下载 OCR 模型，请耐心等待。"
         type="info"
         showIcon
         style={{ marginBottom: 24 }}
@@ -429,12 +439,45 @@ function PDFTools() {
         </Form.Item>
 
         <Form.Item
-          name="enableDesensitize"
-          label="启用脱敏"
+          name="useGpu"
+          label="GPU 加速"
           valuePropName="checked"
           initialValue={true}
+          tooltip="启用 GPU 可提升 5-10 倍处理速度（需要 NVIDIA 显卡和 CUDA）"
+        >
+          <Switch checkedChildren="✅ 启用" unCheckedChildren="❌ 禁用" defaultChecked />
+        </Form.Item>
+
+        <Form.Item
+          name="enableDesensitize"
+          label="基础脱敏"
+          valuePropName="checked"
+          initialValue={true}
+          tooltip="自动脱敏手机号、身份证、邮箱、车牌号、银行卡等"
         >
           <Switch checkedChildren="开启" unCheckedChildren="关闭" defaultChecked />
+        </Form.Item>
+
+        <Form.Item
+          name="enableNameDesensitize"
+          label="姓名脱敏"
+          valuePropName="checked"
+          initialValue={true}
+          tooltip="自动识别并脱敏常见中文姓名"
+        >
+          <Switch checkedChildren="开启" unCheckedChildren="关闭" defaultChecked />
+        </Form.Item>
+
+        <Form.Item
+          label="自定义姓名列表"
+          tooltip="每行输入一个需要脱敏的姓名，系统会自动脱敏这些姓名"
+        >
+          <TextArea
+            rows={4}
+            placeholder="张三&#10;李四&#10;王五&#10;（每行一个姓名）"
+            value={customNames}
+            onChange={(e) => setCustomNames(e.target.value)}
+          />
         </Form.Item>
 
         <Form.Item>

@@ -1,0 +1,27 @@
+# GPU 加速版依赖
+# 适用于有 NVIDIA GPU 的用户（如 RTX 5070）
+
+# PDF Processing
+PyMuPDF==1.23.8
+pdfplumber==0.10.3
+
+# OCR Libraries - GPU 版本
+paddlepaddle-gpu>=2.5.2  # PaddlePaddle GPU 版本
+paddleocr==2.7.0.3
+
+# CUDA 支持（根据您的 CUDA 版本选择）
+# 如果是 CUDA 11.8: paddlepaddle-gpu==2.5.2
+# 如果是 CUDA 12.0: paddlepaddle-gpu==2.6.0
+# 查看 CUDA 版本: nvidia-smi
+
+# Image Processing
+Pillow==10.1.0
+opencv-python==4.8.1.78
+
+# Utilities
+numpy==1.24.3
+
+# 性能监控（可选）
+psutil==5.9.6
+GPUtil==1.4.0
+

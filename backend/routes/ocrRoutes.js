@@ -12,13 +12,25 @@ const logger = require('../utils/logger');
 const db = require('../database/db');
 
 /**
- * OCR 识别与脱敏
+ * OCR 识别与脱敏（增强版）
  * POST /api/ocr/process
- * Body: { fileId, enableDesensitize: true }
+ * Body: { 
+ *   fileId, 
+ *   enableDesensitize: true,
+ *   enableNameDesensitize: true,
+ *   useGpu: true,
+ *   customNames: []
+ * }
  */
 router.post('/process', async (req, res) => {
   try {
-    const { fileId, enableDesensitize = true } = req.body;
+    const { 
+      fileId, 
+      enableDesensitize = true,
+      enableNameDesensitize = true,
+      useGpu = true,
+      customNames = []
+    } = req.body;
 
     // 验证参数
     if (!fileId) {
@@ -54,11 +66,27 @@ router.post('/process', async (req, res) => {
     const outputFileName = `ocr_result_${fileId}_${timestamp}.json`;
     const outputPath = path.join(outputDir, outputFileName);
 
-    // 准备 Python 脚本参数
-    const scriptPath = path.join(__dirname, '../../python-scripts/ocr_processor.py');
+    // 准备 Python 脚本参数 - 使用增强版处理器
+    const scriptPath = path.join(__dirname, '../../python-scripts/ocr_processor_enhanced.py');
     const inputPath = file.file_path;
 
-    const pythonArgs = [scriptPath, inputPath, outputPath];
+    let pythonArgs = [scriptPath, inputPath, outputPath];
+    
+    // 添加选项
+    if (!useGpu) {
+      pythonArgs.push('--no-gpu');
+    }
+    
+    if (!enableNameDesensitize) {
+      pythonArgs.push('--no-name-desensitize');
+    }
+    
+    // 处理自定义姓名
+    if (customNames && customNames.length > 0) {
+      const customNamesFile = path.join(outputDir, `custom_names_${fileId}_${timestamp}.txt`);
+      await fs.writeFile(customNamesFile, customNames.join('\n'), 'utf-8');
+      pythonArgs.push('--custom-names', customNamesFile);
+    }
 
     logger.info(`开始 OCR 处理: ${file.original_name}`);
 
