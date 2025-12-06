@@ -116,31 +116,59 @@ Windows 10/11 或 macOS/Linux
 ### 2️⃣ 安装依赖
 
 ```bash
-# 安装 Node.js 依赖
-cd backend
-npm install
+# 方式 1：一键安装（推荐）
+npm run install:all
 
-cd ../frontend
-npm install
-
-# 安装 Python 依赖
-cd ../python-scripts
-pip install -r requirements.txt
+# 方式 2：分别安装
+cd backend && npm install
+cd ../frontend && npm install
+cd ../python-scripts && pip install -r requirements.txt
 ```
 
 ### 3️⃣ 启动服务
 
-```bash
-# Windows
-.\start-dev.ps1
+#### 🎯 方式 1：IDE 一键启动（推荐）⭐
 
-# Linux/Mac
-./start-dev.sh
+**VSCode 用户**：
+```
+1. 按 F5 或点击「运行和调试」
+2. 选择「🚀 启动 FileProcessor (一键启动)」
+3. 点击绿色播放按钮
+
+✅ 一键启动前后端
+✅ 统一的彩色日志
+✅ 按 Ctrl+C 优雅关闭所有服务
+✅ 无需手动管理多个终端
+```
+
+详细说明：📖 [IDE启动指南.md](IDE启动指南.md)
+
+#### 🔧 方式 2：命令行启动
+
+```bash
+# 统一启动（推荐）
+node start-dev-unified.js
+
+# 或使用 npm
+npm start
+
+# 传统方式（多终端）
+.\start-dev.ps1  # Windows
+./start-dev.sh   # Linux/Mac
 ```
 
 ### 4️⃣ 访问应用
 
 浏览器自动打开：http://localhost:5173
+
+### 5️⃣ 停止服务
+
+```
+IDE 启动：按 Ctrl+C 或点击停止按钮
+命令行：按 Ctrl+C
+```
+
+✅ **所有服务会自动优雅关闭，无需手动关闭终端！**
 
 ---
 
