@@ -11,6 +11,7 @@ import DocumentConverter from './pages/DocumentConverter'
 import BatchRename from './pages/BatchRename'
 import VersionManagement from './pages/VersionManagement'
 import Settings from './pages/Settings'
+import TestPage from './pages/TestPage'
 import './App.css'
 
 const { Content } = Layout
@@ -29,6 +30,7 @@ function App() {
         <Route path="/batch-rename" element={<BatchRename />} />
         <Route path="/version-management" element={<VersionManagement />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/test" element={<TestPage />} />
       </Routes>
     </MainLayout>
   )
