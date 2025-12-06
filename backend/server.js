@@ -6,6 +6,9 @@ const db = require('./database/db');
 const fileRoutes = require('./routes/fileRoutes');
 const logRoutes = require('./routes/logRoutes');
 const exportRoutes = require('./routes/exportRoutes');
+const pdfRoutes = require('./routes/pdfRoutes');
+const ocrRoutes = require('./routes/ocrRoutes');
+const previewRoutes = require('./routes/previewRoutes');
 
 // Load environment variables
 const PORT = process.env.PORT || 3000;
@@ -32,6 +35,9 @@ app.use((req, res, next) => {
 app.use('/api/files', fileRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/pdf', pdfRoutes);
+app.use('/api/ocr', ocrRoutes);
+app.use('/api/preview', previewRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

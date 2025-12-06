@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Table, Tag, Button, Space, message, Popconfirm, Input } from 'antd'
+import { Table, Tag, Button, Space, message, Popconfirm, Input, Modal } from 'antd'
 import {
   DownloadOutlined,
   DeleteOutlined,
   ReloadOutlined,
   SearchOutlined,
   FolderOpenOutlined,
+  EyeOutlined,
 } from '@ant-design/icons'
 import axios from 'axios'
 
@@ -14,6 +15,9 @@ function FileList() {
   const [loading, setLoading] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
+  const [previewVisible, setPreviewVisible] = useState(false)
+  const [previewFile, setPreviewFile] = useState(null)
+  const [previewContent, setPreviewContent] = useState(null)
 
   useEffect(() => {
     fetchFiles()
@@ -115,6 +119,59 @@ function FileList() {
     }
   }
 
+  // 文件预览
+  const handlePreview = async (file) => {
+    setPreviewFile(file)
+    setPreviewVisible(true)
+    setPreviewContent(null)
+
+    const ext = file.original_name.toLowerCase().match(/\.([^.]+)$/)?.[1]
+    
+    // 判断文件类型
+    if (['pdf'].includes(ext)) {
+      // PDF 直接使用 iframe 预览
+      setPreviewContent({
+        type: 'pdf',
+        url: `/api/preview/${file.id}`
+      })
+    } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext)) {
+      // 图片预览
+      setPreviewContent({
+        type: 'image',
+        url: `/api/preview/${file.id}`
+      })
+    } else if (['txt', 'json', 'log', 'md', 'csv'].includes(ext)) {
+      // 文本文件
+      try {
+        const response = await axios.get(`/api/preview/text/${file.id}`)
+        if (response.data.success) {
+          setPreviewContent({
+            type: 'text',
+            content: response.data.data.content
+          })
+        }
+      } catch (error) {
+        message.error('加载文本内容失败')
+        setPreviewContent({
+          type: 'error',
+          message: '无法预览此文件类型'
+        })
+      }
+    } else {
+      setPreviewContent({
+        type: 'unsupported',
+        message: '该文件类型暂不支持预览'
+      })
+    }
+  }
+
+  // 判断文件是否支持预览
+  const isPreviewSupported = (fileName) => {
+    const ext = fileName.toLowerCase().match(/\.([^.]+)$/)?.[1]
+    const supportedExts = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'txt', 'json', 'log', 'md', 'csv']
+    return supportedExts.includes(ext)
+  }
+
   // 选择框配置
   const rowSelection = {
     selectedRowKeys,
@@ -190,9 +247,19 @@ function FileList() {
     {
       title: '操作',
       key: 'action',
-      width: 180,
+      width: 240,
       render: (_, record) => (
         <Space size="small">
+          {isPreviewSupported(record.original_name) && (
+            <Button
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handlePreview(record)}
+            >
+              预览
+            </Button>
+          )}
           <Button
             type="link"
             size="small"
@@ -296,6 +363,64 @@ function FileList() {
           locale={{ emptyText: '暂无文件' }}
         />
       </div>
+
+      {/* 文件预览 Modal */}
+      <Modal
+        title={`预览: ${previewFile?.original_name || ''}`}
+        open={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        width={900}
+        footer={[
+          <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={() => previewFile && handleDownload(previewFile)}>
+            下载
+          </Button>,
+          <Button key="close" onClick={() => setPreviewVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        style={{ top: 20 }}
+      >
+        {previewContent ? (
+          <div style={{ minHeight: 400, maxHeight: 600, overflow: 'auto' }}>
+            {previewContent.type === 'pdf' && (
+              <iframe
+                src={previewContent.url}
+                style={{ width: '100%', height: 600, border: 'none' }}
+                title="PDF Preview"
+              />
+            )}
+            {previewContent.type === 'image' && (
+              <img
+                src={previewContent.url}
+                alt="Preview"
+                style={{ width: '100%', height: 'auto' }}
+              />
+            )}
+            {previewContent.type === 'text' && (
+              <pre style={{ 
+                padding: 16, 
+                background: '#f5f5f5', 
+                borderRadius: 4,
+                maxHeight: 600,
+                overflow: 'auto',
+                fontSize: 13,
+                lineHeight: 1.6
+              }}>
+                {previewContent.content}
+              </pre>
+            )}
+            {(previewContent.type === 'unsupported' || previewContent.type === 'error') && (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <p>{previewContent.message}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <p>加载中...</p>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
