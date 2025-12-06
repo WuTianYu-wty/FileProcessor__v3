@@ -57,6 +57,8 @@ function PDFTools() {
   const [ocrResult, setOcrResult] = useState(null)
   const [showOcrResult, setShowOcrResult] = useState(false)
   const [customNames, setCustomNames] = useState('')
+  const [customAddresses, setCustomAddresses] = useState('')
+  const [customCompanies, setCustomCompanies] = useState('')
 
   // 加载文件列表
   useEffect(() => {
@@ -186,12 +188,28 @@ function PDFTools() {
         .map(name => name.trim())
         .filter(name => name.length > 0)
       
+      // 解析自定义地址列表
+      const customAddressesList = customAddresses
+        .split('\n')
+        .map(addr => addr.trim())
+        .filter(addr => addr.length > 0)
+      
+      // 解析自定义公司列表
+      const customCompaniesList = customCompanies
+        .split('\n')
+        .map(comp => comp.trim())
+        .filter(comp => comp.length > 0)
+      
       const response = await axios.post('/api/ocr/process', {
         fileId: values.fileId,
         enableDesensitize: values.enableDesensitize !== false,
         enableNameDesensitize: values.enableNameDesensitize !== false,
+        enableAddressDesensitize: values.enableAddressDesensitize !== false,
+        enableCompanyDesensitize: values.enableCompanyDesensitize !== false,
         useGpu: values.useGpu !== false,
-        customNames: customNamesList
+        customNames: customNamesList,
+        customAddresses: customAddressesList,
+        customCompanies: customCompaniesList
       })
 
       if (response.data.success) {
@@ -408,7 +426,7 @@ function PDFTools() {
     <div>
       <Alert
         message="OCR 识别与脱敏功能 - 增强版 ⚡"
-        description="支持 GPU 加速（RTX 5070）、自定义姓名脱敏、智能识别敏感信息。首次使用会下载 OCR 模型，请耐心等待。"
+        description="支持 GPU 加速（RTX 5070）、自定义姓名/地址/公司脱敏、智能识别敏感信息。首次使用会下载 OCR 模型，请耐心等待。"
         type="info"
         showIcon
         style={{ marginBottom: 24 }}
@@ -469,14 +487,60 @@ function PDFTools() {
         </Form.Item>
 
         <Form.Item
+          name="enableAddressDesensitize"
+          label="地址脱敏"
+          valuePropName="checked"
+          initialValue={true}
+          tooltip="自动脱敏自定义地址信息"
+        >
+          <Switch checkedChildren="开启" unCheckedChildren="关闭" defaultChecked />
+        </Form.Item>
+
+        <Form.Item
+          name="enableCompanyDesensitize"
+          label="公司脱敏"
+          valuePropName="checked"
+          initialValue={true}
+          tooltip="自动脱敏自定义公司名称"
+        >
+          <Switch checkedChildren="开启" unCheckedChildren="关闭" defaultChecked />
+        </Form.Item>
+
+        <Divider orientation="left">自定义脱敏配置</Divider>
+
+        <Form.Item
           label="自定义姓名列表"
           tooltip="每行输入一个需要脱敏的姓名，系统会自动脱敏这些姓名"
         >
           <TextArea
-            rows={4}
+            rows={3}
             placeholder="张三&#10;李四&#10;王五&#10;（每行一个姓名）"
             value={customNames}
             onChange={(e) => setCustomNames(e.target.value)}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="自定义地址列表"
+          tooltip="每行输入一个需要脱敏的地址，如公司地址、家庭住址等"
+        >
+          <TextArea
+            rows={3}
+            placeholder="北京市朝阳区建国路XX号&#10;上海市浦东新区世纪大道XX号&#10;（每行一个地址）"
+            value={customAddresses}
+            onChange={(e) => setCustomAddresses(e.target.value)}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="自定义公司列表"
+          tooltip="每行输入一个需要脱敏的公司名称"
+        >
+          <TextArea
+            rows={3}
+            placeholder="XX科技有限公司&#10;XX集团股份有限公司&#10;（每行一个公司名）"
+            value={customCompanies}
+            onChange={(e) => setCustomCompanies(e.target.value)}
           />
         </Form.Item>
 

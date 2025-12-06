@@ -26,12 +26,14 @@ except ImportError as e:
 class OCRProcessorEnhanced:
     """增强版 OCR 处理器 - 支持 GPU 加速和自定义脱敏"""
     
-    def __init__(self, use_gpu=True, custom_names=None, custom_patterns=None):
+    def __init__(self, use_gpu=True, custom_names=None, custom_patterns=None, custom_addresses=None, custom_companies=None):
         """
         初始化 OCR 引擎
         :param use_gpu: 是否使用 GPU 加速
         :param custom_names: 自定义姓名列表（用于脱敏）
         :param custom_patterns: 自定义脱敏规则字典
+        :param custom_addresses: 自定义地址列表（用于脱敏）
+        :param custom_companies: 自定义公司列表（用于脱敏）
         """
         # 检测 GPU 可用性
         self.use_gpu = use_gpu
@@ -75,6 +77,12 @@ class OCRProcessorEnhanced:
         # 自定义姓名列表
         self.custom_names = custom_names or []
         
+        # 自定义地址列表
+        self.custom_addresses = custom_addresses or []
+        
+        # 自定义公司列表
+        self.custom_companies = custom_companies or []
+        
         # 常见姓名库（前100个常见姓氏）
         self.common_surnames = [
             '王', '李', '张', '刘', '陈', '杨', '黄', '赵', '周', '吴',
@@ -96,12 +104,14 @@ class OCRProcessorEnhanced:
             'gpu_enabled': self.use_gpu
         }
     
-    def process_pdf(self, input_path, output_path, enable_name_desensitize=True):
+    def process_pdf(self, input_path, output_path, enable_name_desensitize=True, enable_address_desensitize=True, enable_company_desensitize=True):
         """
         处理 PDF 文件（增强版）
         :param input_path: 输入 PDF 路径
         :param output_path: 输出 JSON 路径
         :param enable_name_desensitize: 是否启用姓名脱敏
+        :param enable_address_desensitize: 是否启用地址脱敏
+        :param enable_company_desensitize: 是否启用公司脱敏
         :return: 处理结果
         """
         import time
@@ -141,7 +151,7 @@ class OCRProcessorEnhanced:
                 
                 # 脱敏处理
                 desensitized_texts = [
-                    self.desensitize_text(text, enable_name_desensitize) 
+                    self.desensitize_text(text, enable_name_desensitize, enable_address_desensitize, enable_company_desensitize) 
                     for text in texts
                 ]
                 
@@ -185,7 +195,11 @@ class OCRProcessorEnhanced:
                 },
                 'settings': {
                     'name_desensitize_enabled': enable_name_desensitize,
-                    'custom_names_count': len(self.custom_names)
+                    'address_desensitize_enabled': enable_address_desensitize,
+                    'company_desensitize_enabled': enable_company_desensitize,
+                    'custom_names_count': len(self.custom_names),
+                    'custom_addresses_count': len(self.custom_addresses),
+                    'custom_companies_count': len(self.custom_companies)
                 }
             }
             
@@ -201,11 +215,13 @@ class OCRProcessorEnhanced:
         except Exception as e:
             return {'error': str(e)}
     
-    def desensitize_text(self, text, enable_name_desensitize=True):
+    def desensitize_text(self, text, enable_name_desensitize=True, enable_address_desensitize=True, enable_company_desensitize=True):
         """
         脱敏文本中的敏感信息（增强版）
         :param text: 原始文本
         :param enable_name_desensitize: 是否启用姓名脱敏
+        :param enable_address_desensitize: 是否启用地址脱敏
+        :param enable_company_desensitize: 是否启用公司脱敏
         :return: 脱敏后的文本
         """
         desensitized = text
@@ -253,6 +269,31 @@ class OCRProcessorEnhanced:
             # 只脱敏2-3字的姓名（避免误伤）
             desensitized = re.sub(f"({'|'.join(self.common_surnames)})[^，。、；：！？\\s]{{1,2}}", mask_name, desensitized)
         
+        # 3. 自定义公司脱敏
+        if enable_company_desensitize and self.custom_companies:
+            for company in self.custom_companies:
+                if len(company) >= 3:
+                    # 保留前3个字，其余用***代替
+                    if len(company) <= 6:
+                        mask = company[:2] + '***'
+                    else:
+                        # 较长的公司名，保留前3后1
+                        mask = company[:3] + '***' + company[-1:]
+                    desensitized = desensitized.replace(company, mask)
+        
+        # 4. 自定义地址脱敏
+        if enable_address_desensitize and self.custom_addresses:
+            for address in self.custom_addresses:
+                if len(address) >= 5:
+                    # 根据地址长度智能脱敏
+                    if len(address) <= 15:
+                        # 短地址：保留前5后3
+                        mask = address[:5] + '***' + address[-3:]
+                    else:
+                        # 长地址：保留前6后4，中间部分脱敏
+                        mask = address[:6] + '******' + address[-4:]
+                    desensitized = desensitized.replace(address, mask)
+        
         return desensitized
     
     def detect_sensitive_types(self, text):
@@ -287,12 +328,14 @@ class OCRProcessorEnhanced:
             pass
         return {'available': False}
     
-    def process_image(self, input_path, output_path, enable_name_desensitize=True):
+    def process_image(self, input_path, output_path, enable_name_desensitize=True, enable_address_desensitize=True, enable_company_desensitize=True):
         """
         处理单张图片
         :param input_path: 输入图片路径
         :param output_path: 输出 JSON 路径
         :param enable_name_desensitize: 是否启用姓名脱敏
+        :param enable_address_desensitize: 是否启用地址脱敏
+        :param enable_company_desensitize: 是否启用公司脱敏
         :return: 处理结果
         """
         import time
@@ -315,7 +358,7 @@ class OCRProcessorEnhanced:
             
             # 脱敏处理
             desensitized_texts = [
-                self.desensitize_text(text, enable_name_desensitize) 
+                self.desensitize_text(text, enable_name_desensitize, enable_address_desensitize, enable_company_desensitize) 
                 for text in texts
             ]
             
@@ -354,9 +397,13 @@ def main():
     if len(sys.argv) < 3:
         print("Usage: python ocr_processor_enhanced.py <input_file> <output_file> [options]")
         print("\nOptions:")
-        print("  --no-gpu              禁用 GPU 加速")
-        print("  --no-name-desensitize 禁用姓名脱敏")
-        print("  --custom-names FILE   自定义姓名列表文件（每行一个姓名）")
+        print("  --no-gpu                  禁用 GPU 加速")
+        print("  --no-name-desensitize     禁用姓名脱敏")
+        print("  --no-address-desensitize  禁用地址脱敏")
+        print("  --no-company-desensitize  禁用公司脱敏")
+        print("  --custom-names FILE       自定义姓名列表文件（每行一个姓名）")
+        print("  --custom-addresses FILE   自定义地址列表文件（每行一个地址）")
+        print("  --custom-companies FILE   自定义公司列表文件（每行一个公司名）")
         sys.exit(1)
     
     input_file = sys.argv[1]
@@ -365,6 +412,8 @@ def main():
     # 解析选项
     use_gpu = '--no-gpu' not in sys.argv
     enable_name_desensitize = '--no-name-desensitize' not in sys.argv
+    enable_address_desensitize = '--no-address-desensitize' not in sys.argv
+    enable_company_desensitize = '--no-company-desensitize' not in sys.argv
     
     # 读取自定义姓名
     custom_names = []
@@ -379,17 +428,57 @@ def main():
             except Exception as e:
                 print(f"⚠️ 加载自定义姓名失败: {e}")
     
+    # 读取自定义地址
+    custom_addresses = []
+    if '--custom-addresses' in sys.argv:
+        idx = sys.argv.index('--custom-addresses')
+        if idx + 1 < len(sys.argv):
+            addresses_file = sys.argv[idx + 1]
+            try:
+                with open(addresses_file, 'r', encoding='utf-8') as f:
+                    custom_addresses = [line.strip() for line in f if line.strip()]
+                print(f"✓ 加载了 {len(custom_addresses)} 个自定义地址")
+            except Exception as e:
+                print(f"⚠️ 加载自定义地址失败: {e}")
+    
+    # 读取自定义公司
+    custom_companies = []
+    if '--custom-companies' in sys.argv:
+        idx = sys.argv.index('--custom-companies')
+        if idx + 1 < len(sys.argv):
+            companies_file = sys.argv[idx + 1]
+            try:
+                with open(companies_file, 'r', encoding='utf-8') as f:
+                    custom_companies = [line.strip() for line in f if line.strip()]
+                print(f"✓ 加载了 {len(custom_companies)} 个自定义公司")
+            except Exception as e:
+                print(f"⚠️ 加载自定义公司失败: {e}")
+    
     # 初始化处理器
     processor = OCRProcessorEnhanced(
         use_gpu=use_gpu,
-        custom_names=custom_names
+        custom_names=custom_names,
+        custom_addresses=custom_addresses,
+        custom_companies=custom_companies
     )
     
     # 处理文件
     if input_file.lower().endswith('.pdf'):
-        result = processor.process_pdf(input_file, output_file, enable_name_desensitize)
+        result = processor.process_pdf(
+            input_file, 
+            output_file, 
+            enable_name_desensitize,
+            enable_address_desensitize,
+            enable_company_desensitize
+        )
     else:
-        result = processor.process_image(input_file, output_file, enable_name_desensitize)
+        result = processor.process_image(
+            input_file, 
+            output_file, 
+            enable_name_desensitize,
+            enable_address_desensitize,
+            enable_company_desensitize
+        )
     
     if 'error' in result:
         print(f"❌ Error: {result['error']}")

@@ -18,8 +18,12 @@ const db = require('../database/db');
  *   fileId, 
  *   enableDesensitize: true,
  *   enableNameDesensitize: true,
+ *   enableAddressDesensitize: true,
+ *   enableCompanyDesensitize: true,
  *   useGpu: true,
- *   customNames: []
+ *   customNames: [],
+ *   customAddresses: [],
+ *   customCompanies: []
  * }
  */
 router.post('/process', async (req, res) => {
@@ -28,8 +32,12 @@ router.post('/process', async (req, res) => {
       fileId, 
       enableDesensitize = true,
       enableNameDesensitize = true,
+      enableAddressDesensitize = true,
+      enableCompanyDesensitize = true,
       useGpu = true,
-      customNames = []
+      customNames = [],
+      customAddresses = [],
+      customCompanies = []
     } = req.body;
 
     // 验证参数
@@ -81,11 +89,33 @@ router.post('/process', async (req, res) => {
       pythonArgs.push('--no-name-desensitize');
     }
     
+    if (!enableAddressDesensitize) {
+      pythonArgs.push('--no-address-desensitize');
+    }
+    
+    if (!enableCompanyDesensitize) {
+      pythonArgs.push('--no-company-desensitize');
+    }
+    
     // 处理自定义姓名
     if (customNames && customNames.length > 0) {
       const customNamesFile = path.join(outputDir, `custom_names_${fileId}_${timestamp}.txt`);
       await fs.writeFile(customNamesFile, customNames.join('\n'), 'utf-8');
       pythonArgs.push('--custom-names', customNamesFile);
+    }
+    
+    // 处理自定义地址
+    if (customAddresses && customAddresses.length > 0) {
+      const customAddressesFile = path.join(outputDir, `custom_addresses_${fileId}_${timestamp}.txt`);
+      await fs.writeFile(customAddressesFile, customAddresses.join('\n'), 'utf-8');
+      pythonArgs.push('--custom-addresses', customAddressesFile);
+    }
+    
+    // 处理自定义公司
+    if (customCompanies && customCompanies.length > 0) {
+      const customCompaniesFile = path.join(outputDir, `custom_companies_${fileId}_${timestamp}.txt`);
+      await fs.writeFile(customCompaniesFile, customCompanies.join('\n'), 'utf-8');
+      pythonArgs.push('--custom-companies', customCompaniesFile);
     }
 
     logger.info(`开始 OCR 处理: ${file.original_name}`);
