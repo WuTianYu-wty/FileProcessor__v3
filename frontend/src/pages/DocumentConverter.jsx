@@ -1,54 +1,39 @@
 import { useState, useEffect } from 'react'
 import {
   Card,
-  Form,
-  Select,
   Button,
   message,
-  Space,
-  List,
+  Table,
   Tag,
-  Progress,
+  Radio,
   Alert,
   Typography,
   Row,
   Col,
-  Upload,
-  Switch,
-  Divider
+  Space,
+  Progress,
+  Popconfirm
 } from 'antd'
 import {
   FileWordOutlined,
   FilePdfOutlined,
-  FileExcelOutlined,
-  FilePptOutlined,
   SwapOutlined,
-  UploadOutlined,
-  DownloadOutlined,
   DeleteOutlined,
-  SyncOutlined
+  SyncOutlined,
+  ReloadOutlined
 } from '@ant-design/icons'
 import axios from 'axios'
 
-const { Option } = Select
 const { Title, Text } = Typography
-const { Dragger } = Upload
 
 function DocumentConverter() {
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
-  const [conversions, setConversions] = useState([])
-  const [form] = Form.useForm()
+  const [selectedRowKeys, setSelectedRowKeys] = useState([])
+  const [conversionType, setConversionType] = useState('pdf_to_word')
+  const [converting, setConverting] = useState(false)
+  const [conversionResults, setConversionResults] = useState([])
 
-  // 支持的转换格式
-  const conversionTypes = [
-    { from: 'pdf', to: 'word', label: 'PDF → Word', icon: <FileWordOutlined /> },
-    { from: 'word', to: 'pdf', label: 'Word → PDF', icon: <FilePdfOutlined /> },
-    { from: 'excel', to: 'pdf', label: 'Excel → PDF', icon: <FileExcelOutlined /> },
-    { from: 'ppt', to: 'pdf', label: 'PPT → PDF', icon: <FilePptOutlined /> },
-  ]
-
-  // 加载文件列表
   useEffect(() => {
     fetchFiles()
   }, [])
@@ -67,351 +52,242 @@ function DocumentConverter() {
     }
   }
 
-  // 获取特定格式的文件
-  const getFilesByType = (type) => {
-    const extensions = {
-      pdf: ['.pdf'],
-      word: ['.docx', '.doc'],
-      excel: ['.xlsx', '.xls'],
-      ppt: ['.pptx', '.ppt']
+  // 获取支持的文件列表
+  const getSupportedFiles = () => {
+    const typeMap = {
+      'pdf_to_word': ['.pdf'],
+      'word_to_pdf': ['.doc', '.docx'],
+      'excel_to_pdf': ['.xls', '.xlsx'],
+      'ppt_to_pdf': ['.ppt', '.pptx']
     }
-
+    
+    const extensions = typeMap[conversionType] || []
     return files.filter(f => {
       const ext = f.original_name.toLowerCase()
-      return extensions[type].some(e => ext.endsWith(e))
+      return extensions.some(e => ext.endsWith(e))
     })
   }
 
-  // 添加转换任务
-  const handleAddConversion = (values) => {
-    const file = files.find(f => f.id === values.fileId)
-    if (!file) {
-      message.error('文件不存在')
+  const supportedFiles = getSupportedFiles()
+
+  // 执行批量转换
+  const handleBatchConvert = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要转换的文件')
       return
     }
 
-    const newConversion = {
-      id: Date.now(),
-      fileId: values.fileId,
-      fileName: file.original_name,
-      inputPath: file.file_path,
-      fromType: values.fromType,
-      toType: values.toType,
-      extractImages: values.extractImages || false,
-      status: 'pending', // pending, processing, success, error
-      progress: 0,
-      error: null
-    }
+    setConverting(true)
+    const results = []
 
-    setConversions([...conversions, newConversion])
-    message.success('已添加到转换列表')
-    form.resetFields()
-  }
+    for (const fileId of selectedRowKeys) {
+      const file = files.find(f => f.id === fileId)
+      if (!file) continue
 
-  // 执行单个转换
-  const handleConvertOne = async (conversion) => {
-    const updatedConversion = { ...conversion, status: 'processing', progress: 50 }
-    updateConversion(conversion.id, updatedConversion)
+      try {
+        const [fromType, toType] = conversionType.split('_to_')
+        const ext = toType === 'word' ? '.docx' : '.pdf'
+        const outputPath = file.file_path.replace(/\.[^.]+$/, `_converted${ext}`)
 
-    const ext = conversion.toType === 'word' ? '.docx' : '.pdf'
-    const outputPath = conversion.inputPath.replace(/\.[^.]+$/, `_converted${ext}`)
-
-    try {
-      let endpoint = '/api/converter/convert'
-      const data = {
-        inputPath: conversion.inputPath,
-        outputPath,
-        extractImages: conversion.extractImages
-      }
-
-      const response = await axios.post(endpoint, data)
-
-      if (response.data.success) {
-        updateConversion(conversion.id, {
-          ...conversion,
-          status: 'success',
-          progress: 100,
-          outputPath: response.data.output
+        const response = await axios.post('/api/converter/convert', {
+          inputPath: file.file_path,
+          outputPath: outputPath,
+          extractImages: true
         })
-        message.success(`${conversion.fileName} 转换成功`)
-        fetchFiles() // 刷新文件列表
-      } else {
-        updateConversion(conversion.id, {
-          ...conversion,
+
+        results.push({
+          fileName: file.original_name,
+          status: response.data.success ? 'success' : 'error',
+          message: response.data.message || '转换成功',
+          outputPath: response.data.outputPath
+        })
+      } catch (error) {
+        results.push({
+          fileName: file.original_name,
           status: 'error',
-          progress: 0,
-          error: response.data.error || '转换失败'
+          message: error.response?.data?.error || '转换失败'
         })
-        message.error(`${conversion.fileName} 转换失败`)
       }
-    } catch (error) {
-      updateConversion(conversion.id, {
-        ...conversion,
-        status: 'error',
-        progress: 0,
-        error: error.response?.data?.error || error.message
-      })
-      message.error(`${conversion.fileName} 转换失败: ${error.message}`)
     }
-  }
 
-  // 批量转换
-  const handleConvertAll = async () => {
-    const pendingConversions = conversions.filter(c => c.status === 'pending')
+    setConversionResults(results)
+    setConverting(false)
     
-    if (pendingConversions.length === 0) {
-      message.warning('没有待转换的文件')
-      return
+    const successCount = results.filter(r => r.status === 'success').length
+    if (successCount > 0) {
+      message.success(`成功转换 ${successCount}/${results.length} 个文件`)
+      fetchFiles() // 刷新文件列表
+      setSelectedRowKeys([])
+    } else {
+      message.error('所有文件转换失败')
     }
+  }
 
-    setLoading(true)
-    
-    for (const conversion of pendingConversions) {
-      await handleConvertOne(conversion)
+  // 表格列定义
+  const columns = [
+    {
+      title: '文件名',
+      dataIndex: 'original_name',
+      key: 'original_name',
+      ellipsis: true,
+      render: (name) => (
+        <Space>
+          <FilePdfOutlined style={{ color: '#ff4d4f' }} />
+          <Text>{name}</Text>
+        </Space>
+      )
+    },
+    {
+      title: '文件类型',
+      dataIndex: 'file_type',
+      key: 'file_type',
+      width: 100,
+      render: (type) => <Tag>{type.toUpperCase()}</Tag>
+    },
+    {
+      title: '大小',
+      dataIndex: 'size',
+      key: 'size',
+      width: 120,
+      render: (size) => {
+        const mb = (size / 1024 / 1024).toFixed(2)
+        return `${mb} MB`
+      }
+    },
+    {
+      title: '上传时间',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 180,
+      render: (date) => new Date(date).toLocaleString('zh-CN')
     }
-    
-    setLoading(false)
-    message.success('批量转换完成')
+  ]
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (selectedKeys) => {
+      setSelectedRowKeys(selectedKeys)
+    },
+    selections: [
+      Table.SELECTION_ALL,
+      Table.SELECTION_INVERT,
+      Table.SELECTION_NONE,
+    ],
   }
 
-  // 更新转换状态
-  const updateConversion = (id, updates) => {
-    setConversions(prev => 
-      prev.map(c => c.id === id ? { ...c, ...updates } : c)
-    )
-  }
-
-  // 删除转换任务
-  const handleDeleteConversion = (id) => {
-    setConversions(prev => prev.filter(c => c.id !== id))
-    message.success('已删除')
-  }
-
-  // 清空列表
-  const handleClearList = () => {
-    setConversions([])
-    message.success('已清空列表')
-  }
-
-  // 获取状态标签
-  const getStatusTag = (status) => {
-    const statusConfig = {
-      pending: { color: 'default', text: '待转换' },
-      processing: { color: 'processing', text: '转换中' },
-      success: { color: 'success', text: '成功' },
-      error: { color: 'error', text: '失败' }
-    }
-    const config = statusConfig[status] || statusConfig.pending
-    return <Tag color={config.color}>{config.text}</Tag>
-  }
+  const conversionOptions = [
+    { value: 'pdf_to_word', label: 'PDF → Word', icon: <FileWordOutlined /> },
+    { value: 'word_to_pdf', label: 'Word → PDF', icon: <FilePdfOutlined /> },
+    { value: 'excel_to_pdf', label: 'Excel → PDF', icon: <FileWordOutlined /> },
+    { value: 'ppt_to_pdf', label: 'PPT → PDF', icon: <FileWordOutlined /> }
+  ]
 
   return (
     <div>
       <div className="page-header">
         <h1><SwapOutlined /> 文档格式转换</h1>
-        <p>支持 PDF、Word、Excel、PowerPoint 互转</p>
+        <p>支持 PDF、Word、Excel、PowerPoint 互转，勾选文件批量处理</p>
       </div>
 
       <Row gutter={16}>
-        <Col span={10}>
-          <Card title="添加转换任务" loading={loading}>
-            <Alert
-              message="支持的转换"
-              description={
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <div>✅ PDF → Word（提取文字和图片）</div>
-                  <div>✅ Word → PDF（需要 MS Word 或 LibreOffice）</div>
-                  <div>✅ Excel → PDF</div>
-                  <div>✅ PowerPoint → PDF</div>
-                </Space>
-              }
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
-
-            <Form form={form} layout="vertical" onFinish={handleAddConversion}>
-              <Form.Item 
-                label="转换类型" 
-                name="conversionType" 
-                required
-                rules={[{ required: true, message: '请选择转换类型' }]}
-              >
-                <Select 
-                  placeholder="选择转换类型"
-                  onChange={(value) => {
-                    const [from, to] = value.split('_to_')
-                    form.setFieldsValue({ fromType: from, toType: to })
+        <Col span={24}>
+          <Card>
+            <Space direction="vertical" style={{ width: '100%' }} size="large">
+              {/* 转换类型选择 */}
+              <div>
+                <Text strong style={{ marginRight: 16 }}>选择转换类型：</Text>
+                <Radio.Group 
+                  value={conversionType} 
+                  onChange={(e) => {
+                    setConversionType(e.target.value)
+                    setSelectedRowKeys([]) // 切换类型时清空选择
                   }}
+                  buttonStyle="solid"
                 >
-                  {conversionTypes.map(type => (
-                    <Option key={`${type.from}_to_${type.to}`} value={`${type.from}_to_${type.to}`}>
-                      {type.icon} {type.label}
-                    </Option>
+                  {conversionOptions.map(opt => (
+                    <Radio.Button key={opt.value} value={opt.value}>
+                      {opt.icon} {opt.label}
+                    </Radio.Button>
                   ))}
-                </Select>
-              </Form.Item>
+                </Radio.Group>
+              </div>
 
-              <Form.Item name="fromType" hidden>
-                <input />
-              </Form.Item>
-              <Form.Item name="toType" hidden>
-                <input />
-              </Form.Item>
+              {/* 文件选择表格 */}
+              <div>
+                <Space style={{ marginBottom: 16 }}>
+                  <Text strong>
+                    选择文件（已选 {selectedRowKeys.length} 个）
+                  </Text>
+                  <Button 
+                    icon={<ReloadOutlined />}
+                    onClick={fetchFiles}
+                    size="small"
+                  >
+                    刷新列表
+                  </Button>
+                </Space>
 
-              <Form.Item 
-                label="选择文件" 
-                name="fileId"
-                required
-                rules={[{ required: true, message: '请选择文件' }]}
-              >
-                <Select 
-                  placeholder="选择要转换的文件"
-                  showSearch
-                  filterOption={(input, option) =>
-                    option.children.toLowerCase().includes(input.toLowerCase())
-                  }
-                >
-                  {files.map(file => (
-                    <Option key={file.id} value={file.id}>
-                      {file.original_name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item 
-                label="PDF转Word选项" 
-                name="extractImages" 
-                valuePropName="checked"
-              >
-                <Switch 
-                  checkedChildren="提取图片" 
-                  unCheckedChildren="仅文字"
+                <Table
+                  rowSelection={rowSelection}
+                  columns={columns}
+                  dataSource={supportedFiles}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showTotal: (total) => `共 ${total} 个文件`
+                  }}
+                  locale={{ emptyText: '暂无可转换的文件' }}
+                  size="middle"
                 />
-              </Form.Item>
+              </div>
 
-              <Form.Item>
-                <Button type="primary" htmlType="submit" block icon={<UploadOutlined />}>
-                  添加到转换列表
-                </Button>
-              </Form.Item>
-            </Form>
+              {/* 操作按钮 */}
+              <div style={{ textAlign: 'center' }}>
+                <Space size="large">
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<SwapOutlined />}
+                    onClick={handleBatchConvert}
+                    loading={converting}
+                    disabled={selectedRowKeys.length === 0}
+                  >
+                    开始转换 {selectedRowKeys.length > 0 && `(${selectedRowKeys.length}个文件)`}
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={() => {
+                      setSelectedRowKeys([])
+                      setConversionResults([])
+                    }}
+                  >
+                    清空选择
+                  </Button>
+                </Space>
+              </div>
 
-            <Divider />
-
-            <Space style={{ width: '100%', justifyContent: 'center' }}>
-              <Button 
-                type="primary" 
-                size="large"
-                onClick={handleConvertAll}
-                disabled={conversions.filter(c => c.status === 'pending').length === 0}
-                loading={loading}
-                icon={<SyncOutlined />}
-              >
-                开始批量转换
-              </Button>
-              <Button 
-                danger 
-                onClick={handleClearList}
-                disabled={conversions.length === 0}
-              >
-                清空列表
-              </Button>
-            </Space>
-          </Card>
-        </Col>
-
-        <Col span={14}>
-          <Card 
-            title={`转换列表 (${conversions.length})`}
-            extra={
-              <Space>
-                <Text>
-                  成功: {conversions.filter(c => c.status === 'success').length}
-                </Text>
-                <Text type="danger">
-                  失败: {conversions.filter(c => c.status === 'error').length}
-                </Text>
-              </Space>
-            }
-          >
-            <List
-              dataSource={conversions}
-              locale={{ emptyText: '暂无转换任务' }}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
-                    item.status === 'pending' && (
-                      <Button 
-                        type="link" 
-                        size="small"
-                        onClick={() => handleConvertOne(item)}
-                      >
-                        立即转换
-                      </Button>
-                    ),
-                    item.status === 'error' && (
-                      <Button 
-                        type="link" 
-                        size="small"
-                        onClick={() => {
-                          updateConversion(item.id, { ...item, status: 'pending', error: null })
-                          handleConvertOne({ ...item, status: 'pending' })
-                        }}
-                      >
-                        重试
-                      </Button>
-                    ),
-                    <Button 
-                      danger 
-                      type="link" 
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleDeleteConversion(item.id)}
-                    >
-                      删除
-                    </Button>
-                  ].filter(Boolean)}
-                >
-                  <List.Item.Meta
-                    title={
-                      <Space>
-                        {getStatusTag(item.status)}
-                        <Text strong>{item.fileName}</Text>
-                      </Space>
-                    }
-                    description={
-                      <div>
-                        <div>
-                          <Text type="secondary">
-                            {item.fromType.toUpperCase()} → {item.toType.toUpperCase()}
-                          </Text>
+              {/* 转换结果 */}
+              {conversionResults.length > 0 && (
+                <Alert
+                  message="转换结果"
+                  description={
+                    <div>
+                      {conversionResults.map((result, index) => (
+                        <div key={index} style={{ marginBottom: 8 }}>
+                          {result.status === 'success' ? '✅' : '❌'} {result.fileName}: {result.message}
                         </div>
-                        {item.status === 'processing' && (
-                          <Progress 
-                            percent={item.progress} 
-                            size="small" 
-                            status="active"
-                            style={{ marginTop: 8 }}
-                          />
-                        )}
-                        {item.status === 'error' && (
-                          <Text type="danger" style={{ display: 'block', marginTop: 4 }}>
-                            错误: {item.error}
-                          </Text>
-                        )}
-                        {item.status === 'success' && (
-                          <Text type="success" style={{ display: 'block', marginTop: 4 }}>
-                            ✓ 转换完成
-                          </Text>
-                        )}
-                      </div>
-                    }
-                  />
-                </List.Item>
+                      ))}
+                    </div>
+                  }
+                  type={conversionResults.every(r => r.status === 'success') ? 'success' : 'warning'}
+                  showIcon
+                  closable
+                  onClose={() => setConversionResults([])}
+                />
               )}
-            />
+            </Space>
           </Card>
         </Col>
       </Row>

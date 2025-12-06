@@ -35,7 +35,7 @@ import {
   SaveOutlined
 } from '@ant-design/icons'
 import axios from 'axios'
-import PDFViewer from '../components/PDFViewer'
+// import PDFViewer from '../components/PDFViewer' // 暂时禁用以避免页面崩溃
 
 const { Option } = Select
 const { TextArea } = Input
@@ -304,10 +304,11 @@ function PDFEditorEnhanced() {
                   style={{ marginBottom: 16 }}
                 />
 
-                <PDFViewer
-                  file={selectedFile.file_path}
-                  onPageClick={drawingMode ? handleDrawEnd : 
-                    (currentTool === 'annotation' || currentTool === 'shape') ? handleDrawStart : handlePageClick}
+                <Alert
+                  message="PDF 可视化编辑功能"
+                  description="暂时使用基础编辑器功能。PDF实时预览功能正在优化中，请使用左侧菜单中的 'PDF 编辑器（基础版）' 进行编辑。"
+                  type="warning"
+                  showIcon
                 />
               </>
             )}
@@ -544,9 +545,11 @@ function PDFEditorEnhanced() {
         style={{ top: 20 }}
       >
         {selectedFile && (
-          <PDFViewer
-            file={selectedFile.file_path}
-            onPageClick={handlePageClick}
+          <Alert
+            message="PDF 预览"
+            description="PDF 预览功能正在优化中，建议下载文件后在本地查看。"
+            type="info"
+            showIcon
           />
         )}
       </Modal>

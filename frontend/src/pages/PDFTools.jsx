@@ -17,7 +17,8 @@ import {
   InputNumber,
   Switch,
   Typography,
-  Progress
+  Progress,
+  Table
 } from 'antd'
 import {
   FileSearchOutlined,
@@ -53,6 +54,7 @@ function PDFTools() {
 
   // ========== OCR 状态 ==========
   const [ocrForm] = Form.useForm()
+  const [selectedOcrFiles, setSelectedOcrFiles] = useState([]) // OCR文件选择
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrResult, setOcrResult] = useState(null)
   const [showOcrResult, setShowOcrResult] = useState(false)
@@ -200,23 +202,43 @@ function PDFTools() {
         .map(comp => comp.trim())
         .filter(comp => comp.length > 0)
       
-      const response = await axios.post('/api/ocr/process', {
-        fileId: values.fileId,
-        enableDesensitize: values.enableDesensitize !== false,
-        enableNameDesensitize: values.enableNameDesensitize !== false,
-        enableAddressDesensitize: values.enableAddressDesensitize !== false,
-        enableCompanyDesensitize: values.enableCompanyDesensitize !== false,
-        useGpu: values.useGpu !== false,
-        customNames: customNamesList,
-        customAddresses: customAddressesList,
-        customCompanies: customCompaniesList
-      })
+      // 支持批量处理
+      const fileIds = Array.isArray(values.fileId) ? values.fileId : [values.fileId]
+      let successCount = 0
+      let lastResult = null
 
-      if (response.data.success) {
-        message.success('OCR 处理成功！')
-        setOcrResult(response.data.data.ocrResult)
-        setShowOcrResult(true)
+      for (const fileId of fileIds) {
+        try {
+          const response = await axios.post('/api/ocr/process', {
+            fileId: fileId,
+            enableDesensitize: values.enableDesensitize !== false,
+            enableNameDesensitize: values.enableNameDesensitize !== false,
+            enableAddressDesensitize: values.enableAddressDesensitize !== false,
+            enableCompanyDesensitize: values.enableCompanyDesensitize !== false,
+            useGpu: values.useGpu !== false,
+            customNames: customNamesList,
+            customAddresses: customAddressesList,
+            customCompanies: customCompaniesList
+          })
+
+          if (response.data.success) {
+            successCount++
+            lastResult = response.data.data.ocrResult
+          }
+        } catch (error) {
+          message.error(`文件 ${fileId} 处理失败: ${error.response?.data?.message || error.message}`)
+        }
+      }
+
+      if (successCount > 0) {
+        message.success(`成功处理 ${successCount}/${fileIds.length} 个文件`)
+        if (lastResult) {
+          setOcrResult(lastResult)
+          setShowOcrResult(true)
+        }
         fetchFiles() // 刷新文件列表
+      } else {
+        message.error('所有文件处理失败')
       }
     } catch (error) {
       message.error(error.response?.data?.message || 'OCR 处理失败')
@@ -422,7 +444,30 @@ function PDFTools() {
     </div>
   )
 
-  const renderOcrTab = () => (
+  const renderOcrTab = () => {
+    const ocrColumns = [
+      {
+        title: '文件名',
+        dataIndex: 'original_name',
+        key: 'original_name',
+        ellipsis: true
+      },
+      {
+        title: '大小',
+        dataIndex: 'size',
+        key: 'size',
+        width: 120,
+        render: (size) => `${(size / 1024 / 1024).toFixed(2)} MB`
+      }
+    ]
+
+    const ocrRowSelection = {
+      selectedRowKeys: selectedOcrFiles,
+      onChange: (keys) => setSelectedOcrFiles(keys),
+      selections: [Table.SELECTION_ALL, Table.SELECTION_INVERT, Table.SELECTION_NONE]
+    }
+
+    return (
     <div>
       <Alert
         message="OCR 识别与脱敏功能 - 增强版 ⚡"
@@ -432,29 +477,32 @@ function PDFTools() {
         style={{ marginBottom: 24 }}
       />
 
+      {/* 文件选择表格 */}
+      <div style={{ marginBottom: 24 }}>
+        <Text strong>选择要识别的文件（已选 {selectedOcrFiles.length} 个）</Text>
+        <Table
+          rowSelection={ocrRowSelection}
+          columns={ocrColumns}
+          dataSource={ocrSupportedFiles}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 5, showSizeChanger: true }}
+          size="small"
+          style={{ marginTop: 12 }}
+        />
+      </div>
+
       <Form
         form={ocrForm}
         layout="vertical"
-        onFinish={handleOcrProcess}
+        onFinish={(values) => {
+          if (selectedOcrFiles.length === 0) {
+            message.warning('请先选择要处理的文件')
+            return
+          }
+          handleOcrProcess({ ...values, fileId: selectedOcrFiles })
+        }}
       >
-        <Form.Item
-          name="fileId"
-          label="选择文件"
-          rules={[{ required: true, message: '请选择要处理的文件' }]}
-        >
-          <Select
-            placeholder="选择 PDF 或图片文件"
-            loading={loading}
-            showSearch
-            optionFilterProp="children"
-          >
-            {ocrSupportedFiles.map(file => (
-              <Option key={file.id} value={file.id}>
-                {file.original_name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
 
         <Form.Item
           name="useGpu"
@@ -550,8 +598,10 @@ function PDFTools() {
             htmlType="submit"
             icon={<FileSearchOutlined />}
             loading={ocrLoading}
+            disabled={selectedOcrFiles.length === 0}
+            size="large"
           >
-            {ocrLoading ? 'OCR 处理中...' : '开始识别'}
+            {ocrLoading ? 'OCR 处理中...' : `开始识别 (${selectedOcrFiles.length}个文件)`}
           </Button>
         </Form.Item>
       </Form>
@@ -566,7 +616,8 @@ function PDFTools() {
         />
       )}
     </div>
-  )
+  )}
+}
 
   const items = [
     {
