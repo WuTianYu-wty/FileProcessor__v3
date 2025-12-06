@@ -457,7 +457,7 @@ function BatchRename() {
             {!preview ? (
               <Alert
                 message="预览提示"
-                description="选择文件并配置重命名规则后，点击"预览结果"查看重命名效果，确认无误后再执行重命名。"
+                description="选择文件并配置重命名规则后，点击'预览结果'查看重命名效果，确认无误后再执行重命名。"
                 type="info"
                 showIcon
               />

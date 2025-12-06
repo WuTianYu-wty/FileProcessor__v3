@@ -257,7 +257,7 @@ function PDFEditor() {
           <Card title="编辑操作" loading={loading}>
             <Alert
               message="操作说明"
-              description="选择文件后，添加各种编辑操作。坐标原点在左上角，单位为点（1英寸=72点）。添加的操作会在列表中显示，点击"执行编辑"后批量应用。"
+              description="选择文件后，添加各种编辑操作。坐标原点在左上角，单位为点（1英寸=72点）。添加的操作会在列表中显示，点击'执行编辑'后批量应用。"
               type="info"
               showIcon
               style={{ marginBottom: 16 }}
