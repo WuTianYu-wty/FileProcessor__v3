@@ -5,6 +5,10 @@ import Dashboard from './pages/Dashboard'
 import FileList from './pages/FileList'
 import FileUpload from './pages/FileUpload'
 import PDFTools from './pages/PDFTools'
+import PDFEditor from './pages/PDFEditor'
+import DocumentConverter from './pages/DocumentConverter'
+import BatchRename from './pages/BatchRename'
+import VersionManagement from './pages/VersionManagement'
 import Settings from './pages/Settings'
 import './App.css'
 
@@ -18,6 +22,10 @@ function App() {
         <Route path="/files" element={<FileList />} />
         <Route path="/upload" element={<FileUpload />} />
         <Route path="/pdf-tools" element={<PDFTools />} />
+        <Route path="/pdf-editor" element={<PDFEditor />} />
+        <Route path="/document-converter" element={<DocumentConverter />} />
+        <Route path="/batch-rename" element={<BatchRename />} />
+        <Route path="/version-management" element={<VersionManagement />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </MainLayout>

@@ -6,6 +6,11 @@ import {
   FileTextOutlined,
   UploadOutlined,
   FileSearchOutlined,
+  EditOutlined,
+  SwapOutlined,
+  TagsOutlined,
+  HistoryOutlined,
+  ToolOutlined,
   SettingOutlined,
 } from '@ant-design/icons'
 
@@ -33,9 +38,43 @@ function MainLayout({ children }) {
       label: '文件上传',
     },
     {
-      key: '/pdf-tools',
+      key: 'pdf-menu',
       icon: <FileSearchOutlined />,
       label: 'PDF 工具',
+      children: [
+        {
+          key: '/pdf-tools',
+          icon: <FileSearchOutlined />,
+          label: 'OCR 与拆分合并',
+        },
+        {
+          key: '/pdf-editor',
+          icon: <EditOutlined />,
+          label: 'PDF 编辑器',
+        },
+      ],
+    },
+    {
+      key: 'advanced-tools',
+      icon: <ToolOutlined />,
+      label: '高级工具',
+      children: [
+        {
+          key: '/document-converter',
+          icon: <SwapOutlined />,
+          label: '文档格式转换',
+        },
+        {
+          key: '/batch-rename',
+          icon: <TagsOutlined />,
+          label: '批量重命名',
+        },
+        {
+          key: '/version-management',
+          icon: <HistoryOutlined />,
+          label: '版本管理',
+        },
+      ],
     },
     {
       key: '/settings',
@@ -90,7 +129,7 @@ function MainLayout({ children }) {
             文件处理系统
           </div>
           <div style={{ color: '#8c8c8c' }}>
-            本地部署版本 v1.0.0
+            v2.0.0 - Phase 3 完成
           </div>
         </Header>
         <Content className="app-content">
