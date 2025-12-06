@@ -9,6 +9,10 @@ const exportRoutes = require('./routes/exportRoutes');
 const pdfRoutes = require('./routes/pdfRoutes');
 const ocrRoutes = require('./routes/ocrRoutes');
 const previewRoutes = require('./routes/previewRoutes');
+const pdfEditorRoutes = require('./routes/pdfEditorRoutes');
+const converterRoutes = require('./routes/converterRoutes');
+const renameRoutes = require('./routes/renameRoutes');
+const versionRoutes = require('./routes/versionRoutes');
 
 // Load environment variables
 const PORT = process.env.PORT || 3000;
@@ -38,6 +42,10 @@ app.use('/api/export', exportRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/preview', previewRoutes);
+app.use('/api/pdf-editor', pdfEditorRoutes);
+app.use('/api/converter', converterRoutes);
+app.use('/api/rename', renameRoutes);
+app.use('/api/versions', versionRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
