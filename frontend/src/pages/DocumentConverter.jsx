@@ -172,6 +172,20 @@ function DocumentConverter() {
       Table.SELECTION_ALL,
       Table.SELECTION_INVERT,
       Table.SELECTION_NONE,
+      {
+        key: 'select_all_files',
+        text: '选择全部文件',
+        onSelect: () => {
+          setSelectedRowKeys(supportedFiles.map(f => f.id))
+        },
+      },
+      {
+        key: 'clear_all',
+        text: '清空所有',
+        onSelect: () => {
+          setSelectedRowKeys([])
+        },
+      },
     ],
   }
 
