@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { Button, Space, Spin, Alert } from 'antd'
 import { ZoomInOutlined, ZoomOutOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
-import 'react-pdf/dist/Page/AnnotationLayer.css'
-import 'react-pdf/dist/Page/TextLayer.css'
+
+// 注意：CSS 样式已内联到组件中，不需要额外导入
 
 // 设置 worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
 
 function PDFViewer({ file, onPageClick }) {
   const [numPages, setNumPages] = useState(null)
