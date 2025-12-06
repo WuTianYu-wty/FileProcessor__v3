@@ -616,7 +616,7 @@ function PDFTools() {
         />
       )}
     </div>
-  )}
+  )
 }
 
   const items = [
