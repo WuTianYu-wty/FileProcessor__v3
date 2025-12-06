@@ -30,7 +30,7 @@ import {
   FileTextOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
-  CleanOutlined,
+  ClearOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons'
 import axios from 'axios'
@@ -319,7 +319,7 @@ function VersionManagement() {
                   cancelText="取消"
                 >
                   <Button 
-                    icon={<CleanOutlined />} 
+                    icon={<ClearOutlined />} 
                     size="small"
                   >
                     清理旧版本
